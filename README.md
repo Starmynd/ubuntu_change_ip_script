@@ -1,43 +1,36 @@
 # ubuntu_change_ip_script
-#Bash script to change ip to your own static one. 
-#replace ip with desired one. make sure you ve changed gateway as well.
 
-#!/bin/bash
+Bash script to switch an Ubuntu server from DHCP to a **static IP** via netplan.
 
-# Get the network interface name
-interface=$(ip -o -4 route show to default | awk '{print $5}')
+What it does:
 
-# Debugging: Print the detected interface
-echo "Detected network interface: $interface"
+1. Auto-detects the default network interface
+2. Backs up the current netplan config to `/etc/netplan/backup-<date>/`
+3. Writes a new `/etc/netplan/01-netcfg.yaml` with your static IP, gateway, and DNS
+4. Applies the config and prints the resulting interface state
 
-# Define the static IP address and gateway
-ip_address="192.168.0.235/24"
-gateway="192.168.0.1"
+## Usage
 
-# Define the DNS servers
+Edit the three values at the top of `ipstatic.sh`:
+
+```bash
+ip_address="192.168.0.235/24"   # your desired static IP
+gateway="192.168.0.1"           # your gateway
 dns_servers="192.168.0.1,8.8.8.8"
+```
 
-# Backup the current netplan configuration
-sudo cp /etc/netplan/*.yaml /etc/netplan/backup-$(date +%F-%T)/
+Then run:
 
-# Write the new netplan configuration
-cat <<EOT | sudo tee /etc/netplan/01-netcfg.yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    $interface:
-      addresses:
-        - $ip_address
-      gateway4: $gateway
-      nameservers:
-        addresses: [$dns_servers]
-EOT
+```bash
+sudo bash ipstatic.sh
+```
 
-# Apply the netplan configuration
-sudo netplan apply
+## Notes
 
-# Debugging: Verify the new configuration
-ip addr show $interface
+- Requires **netplan** (default on Ubuntu 18.04+ server)
+- The backup of the old config goes to `/etc/netplan/backup-<date>-<time>/` — restore it from there if something goes wrong
+- Double-check the IP/gateway before running: a wrong gateway will cut off remote access
 
-echo "Static IP configuration applied successfully to interface $interface."
+## License
+
+[MIT](LICENSE)
